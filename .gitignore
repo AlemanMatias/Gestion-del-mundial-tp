@@ -1,0 +1,27 @@
+# Archivos de datos y backups de SQL Server (NUNCA deben ir al repo)
+*.mdf
+*.ldf
+*.ndf
+*.bak
+*.trn
+
+# Archivos de entorno y configuración de SSMS (SQL Server Management Studio)
+*.suo
+*.user
+*.ssmssqlproj
+*.ssmssln
+*.VisualState.xml
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs y temporales
+*.log
+*.tmp
+temp/
