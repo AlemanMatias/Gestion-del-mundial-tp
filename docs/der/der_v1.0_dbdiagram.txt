@@ -1,0 +1,213 @@
+// DER VERSION 1.0 - GRUPO 06
+// --- ------- --- - ----- --
+
+// GESTIÓN DE SEDES
+ 
+Table Pais {
+  ID int [pk, increment]
+  nombre varchar
+  pbi_percapita decimal
+  huso_horario varchar
+}
+ 
+Table Sede {
+  ID int [pk, increment]
+  nombre varchar
+  ciudad varchar
+  capacidad int
+  huso_horario varchar 
+  ID_Pais int [not null, ref: > Pais.ID]
+}
+ 
+// SELECCIONES Y CONVOCATORIA
+ 
+Table Miembro_cuerpo_tecnico {
+  ID int [pk, increment]
+  nombre varchar
+  rol varchar
+  ID_seleccion int [not null, ref: > Seleccion.ID]
+}
+ 
+Table Seleccion {
+  ID int [pk, increment]
+  ID_Pais int [unique, ref: -Pais.ID]
+  confederacion varchar
+  grupo_asignado varchar
+}
+ 
+Table Jugador {
+  ID int [pk, increment]
+  nombre_apellido varchar
+  fecha_nacimiento date
+  ID_Club int [not null, ref: > Club.ID]
+  posicion_habitual varchar
+}
+ 
+Table Club {
+  ID int [pk, increment]
+  nombre varchar
+}
+ 
+Table Convocatoria {
+  ID int [pk, increment]
+  ID_Jugador int [unique, ref: - Jugador.ID]
+  ID_Seleccion int [not null, ref: > Seleccion.ID]
+  estado boolean // 1=alta / 0=baja
+  dorsal int
+  fecha date // fecha en que se registro la baja/alta
+  motivo varchar // si esta en alta sera null
+}
+ 
+Table Fase_Torneo {
+  ID int [pk, increment]
+  nombre varchar
+}
+ 
+Table Partido {
+  ID int [pk, increment]
+  fecha_hora_local datetime 
+  fecha_hora_utc datetime 
+  ID_Fase int [not null, ref: > Fase_Torneo.ID]
+  ID_Sede int [not null, ref: > Sede.ID]
+  ID_Seleccion_Local int [not null, ref: > Seleccion.ID]
+  ID_Seleccion_Visitante int [not null, ref: > Seleccion.ID]
+  goles_local int 
+  goles_visitante int 
+  asistencia_publico int
+}
+ 
+// FORMACIONES Y ALINEACIONES
+ 
+Table Formacion_Partido {
+  ID int [pk, increment]
+  ID_Partido int [not null, ref: > Partido.ID]
+  // ID_Seleccion int [not null, ref: > Seleccion.ID] // Arreglo bucle
+  esquema_tactico varchar 
+}
+ 
+Table Alineacion {
+  ID int [pk, increment]
+  ID_Jugador int [not null, ref: > Jugador.ID]
+  ID_Formacion int [not null, ref: > Formacion_Partido.ID]
+  es_Titular boolean
+}
+ 
+// SUSTITUCIONES
+ 
+Table Sustitucion {
+  ID int [pk, increment]
+  ID_Partido int [not null, ref: > Partido.ID]
+  ID_Jugador_Sale int [not null, ref: > Jugador.ID]
+  ID_Jugador_Entra int [not null, ref: > Jugador.ID]
+  minuto int // Se cambio date por int, mas facil de manejar
+  motivo varchar
+  // ID_Seleccion int [not null, ref: > Seleccion.ID] // Arreglo bucle
+}
+ 
+// GOLES
+ 
+Table Gol {
+  ID int [pk, increment]
+  ID_Partido int [not null, ref: > Partido.ID]
+  ID_Jugador_autor int [not null, ref: > Jugador.ID]
+  ID_Jugador_asistencia int [ref: >? Jugador.ID]
+  ID_Seleccion int [not null, ref: > Seleccion.ID] 
+  minuto int
+  tipo varchar
+  periodo varchar
+}
+
+// AMONESTACIONES Y EXPULSIONES
+
+Table Tarjeta {
+  ID int [pk, increment]
+  ID_Partido int [not null, ref: > Partido.ID]
+  ID_Jugador int [ ref: >? Jugador.ID]
+  ID_Miembro_cuerpo_tecnico int [ ref: >? Miembro_cuerpo_tecnico.ID]
+  minuto int
+  motivo varchar
+  tipo varchar
+  doble_amarilla bool
+}
+ 
+Table Suspension {
+  ID int [pk, increment]
+  ID_Jugador int [not null, ref: > Jugador.ID]
+  ID_Partido int [not null, ref: > Partido.ID]
+  partidos_totales int // cantidad total de partidos que dura la sancion
+  partidos_descontados int // se va incrementando a medida que se procesan partidos
+  motivo varchar
+}
+ 
+Table Partido_Perdido_Suspension {
+  ID int [pk, increment]
+  ID_Suspension int [not null, ref: > Suspension.ID]
+  ID_Partido int [not null, ref: > Partido.ID]
+}
+
+// GESTION DE ARBITROS
+
+Table Designacion_Arbitral {
+  ID int [pk, increment]
+  ID_Partido int [not null, ref: > Partido.ID]
+  ID_arbitro int [not null, ref: > Arbitro.ID]
+  informe varchar 
+  rol varchar
+}
+ 
+Table Arbitro {
+  ID int [pk, increment]
+  ID_Pais int [not null, ref: > Pais.ID]
+  nombre varchar
+  categoria varchar
+}
+ 
+Table Idioma {
+  ID int [pk, increment]
+  lengua varchar
+  ID_arbitro int [not null, ref: > Arbitro.ID]
+}
+ 
+// GESTION DE PUBLICIDAD
+ 
+Table Anunciante {
+  ID int [pk, increment]
+  nombre varchar
+}
+ 
+Table Campaña {
+  ID int [pk, increment]
+  nombre varchar
+  ID_Anunciante int [not null, ref: > Anunciante.ID]
+  fecha_inicio date
+  fecha_fin date 
+}
+ 
+Table Pieza_de_contenido {
+  ID int [pk, increment]
+  nombre varchar
+  ID_Campaña int [not null, ref: > Campaña.ID]
+  idioma varchar
+  costo decimal
+}
+ 
+Table Espacio_publicitario {
+  ID int [pk, increment]
+  nombre varchar
+  ID_Partido int [not null, ref: > Partido.ID]
+}
+ 
+Table Pieza_Pais_Interes {
+  ID int [pk, increment]
+  ID_Pieza int [not null, ref: > Pieza_de_contenido.ID]
+  ID_Pais  int [not null, ref: > Pais.ID]
+}
+ 
+Table Exhibicion {
+  ID int [pk, increment]
+  ID_espacio int [not null, ref: > Espacio_publicitario.ID]
+  ID_pieza int [not null, ref: > Pieza_de_contenido.ID]
+  orden_prioridad int
+  monto_facturado decimal
+}
+
