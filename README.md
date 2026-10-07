@@ -17,12 +17,12 @@ Este proyecto implementa una base de datos relacional orientada a la gestión in
 
 ```text
 ├── docs/
-│   ├── der/                          # Diagrama Entidad-Relación y definición DBML
-│   │   ├── README.md                 # Historial y visualización del modelo
-│   │   ├── der_v1.0.jpg              # Diagrama conceptual/lógico vigente
-│   │   └── der_v1.0_dbdiagram.txt    # Código fuente DBML
-│   └── Instalación-y-Configuración.pdf# Guía técnica de instalación del motor
-├── scripts/                          # Scripts SQL (DDL, DML, Stored Procedures)
+│   ├── der/                          
+│   │   ├── README.md                 
+│   │   ├── der_v1.1.jpg              
+│   │   └── der_v1.1_dbdiagram.txt    
+│   └── Instalación-y-Configuración.pdf
+├── scripts/                          
 │   └── (próximamente)
 ├── .gitignore
 └── README.md
