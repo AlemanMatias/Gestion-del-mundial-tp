@@ -262,6 +262,11 @@ BEGIN TRY
     -- Partido Inaugural Mundial 2026: 11 de junio de 2026 a las 13:00 local (19:00 UTC)
     DECLARE @fecha_inaugural DATETIME = '2026-06-11 13:00:00';
 
+    -- Si en la base de datos existía previamente un partido cargado en esa sede y horario,
+    -- lo removemos temporalmente dentro de la transacción aislada para poder probar sp_CrearPartido limpiamente:
+    DELETE FROM partido.Partido 
+    WHERE ID_Sede = @id_sede_azteca AND fecha_hora_local = @fecha_inaugural;
+
     SELECT @id_partido = ID FROM partido.Partido 
     WHERE ID_Fase = @id_fase_grupos 
       AND ((ID_Seleccion_Local = @id_sel_mex AND ID_Seleccion_Visitante = @id_sel_rsa)

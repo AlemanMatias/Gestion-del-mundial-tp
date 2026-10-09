@@ -127,7 +127,7 @@ GO
         EXEC partido.sp_CrearPartido 
             @id_sede = 1,                 -- Misma sede (Estadio Azteca) que la prueba EXITO
             @id_fase = 1,
-            @fecha_hora_local = '2026-06-30 16:00:00', -- Misa fecha y hora exactas
+            @fecha_hora_local = '2026-06-16 17:00:00', -- Misma fecha y hora exactas
             @id_local = 5,                -- Otro equipo (ej: Francia)
             @id_visitante = 6;            -- Otro equipo (ej: Alemania)
 
@@ -149,7 +149,7 @@ GO
     PRINT '--- PRUEBA 1: Registrar formación (Alta) ---';
     BEGIN TRY
         EXEC partido.sp_RegistrarFormacion  
-            @id_partido = 2, -- argentina - argelia 
+            @id_partido = 3, -- argentina - argelia / Se pone ID 3 porque la semilla ya tiene precargados partidos
             @id_seleccion = 1, -- seleccion argentina 
             @esquema_tactico = '4-3-3';
 
@@ -169,7 +169,7 @@ GO
     PRINT '--- PRUEBA 2: Modificar formación existente (Update automático) ---';
     BEGIN TRY
         EXEC partido.sp_RegistrarFormacion 
-            @id_partido = 1, 
+            @id_partido = 3, 
             @id_seleccion = 1, 
             @esquema_tactico = '4-4-2';
 
@@ -188,7 +188,7 @@ GO
     PRINT '--- PRUEBA 3: Eliminar formación (Baja) ---';
     BEGIN TRY
         EXEC partido.sp_EliminarFormacion 
-            @id_partido = 1, 
+            @id_partido = 3, 
             @id_seleccion = 1;
 
         PRINT 'ÉXITO: Formación eliminada correctamente de la base de datos.';
@@ -205,7 +205,7 @@ GO
     PRINT '--- PRUEBA 4: Error al intentar eliminar formación inexistente ---';
     BEGIN TRY
         EXEC partido.sp_EliminarFormacion 
-            @id_partido = 1, 
+            @id_partido = 3, 
             @id_seleccion = 1; -- Ya la borramos en el paso anterior
 
         PRINT 'FALLO: Debería haber indicado que no existe la formación a borrar.';
@@ -225,22 +225,29 @@ GO
     --------------------------------------------------------------------------------
     PRINT '--- PRUEBAS 1 a 11: Registrando los 11 titulares permitidos ---';
     BEGIN TRY
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 1, @es_titular = 1;
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 2, @es_titular = 1;
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 3, @es_titular = 1;
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 4, @es_titular = 1;
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 5, @es_titular = 1;
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 6, @es_titular = 1;
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 7, @es_titular = 1;
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 8, @es_titular = 1;
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 9, @es_titular = 1;
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 10, @es_titular = 1;
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 11, @es_titular = 1;
+        
+        -- Se crea formacion ya que fue eliminada en el test anterior
+        EXEC partido.sp_RegistrarFormacion  
+            @id_partido = 3, -- argentina - argelia 
+            @id_seleccion = 1, -- seleccion argentina 
+            @esquema_tactico = '4-3-3';
 
-        --SUPLENTES
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 12, @es_titular = 0; 
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 13, @es_titular = 0;
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 14, @es_titular = 0; 
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = 2, @id_jugador = 1, @es_titular = 1;
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = 2, @id_jugador = 2, @es_titular = 1;
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = 2, @id_jugador = 3, @es_titular = 1;
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = 2, @id_jugador = 4, @es_titular = 1;
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = 2, @id_jugador = 5, @es_titular = 1;
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = 2, @id_jugador = 6, @es_titular = 1;
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = 2, @id_jugador = 7, @es_titular = 1;
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = 2, @id_jugador = 8, @es_titular = 1;
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = 2, @id_jugador = 9, @es_titular = 1;
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = 2, @id_jugador = 10, @es_titular = 1;
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = 2, @id_jugador = 11, @es_titular = 1;
+                                                            
+        --SUPLENTES                                         
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = 2, @id_jugador = 12, @es_titular = 0; 
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = 2, @id_jugador = 13, @es_titular = 0;
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = 2, @id_jugador = 14, @es_titular = 0; 
         PRINT 'ÉXITO: Los 11 primeros titulares se registraron correctamente.';
     END TRY
     BEGIN CATCH
@@ -254,7 +261,7 @@ GO
     --------------------------------------------------------------------------------
     PRINT '--- PRUEBA 12: Intentar agregar un titular 12 (Debe fallar) ---';
     BEGIN TRY
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 12, @es_titular = 1;
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = 2, @id_jugador = 12, @es_titular = 1;
 
         PRINT 'FALLO: El sistema permitió registrar más de 11 titulares.';
     END TRY
@@ -268,7 +275,7 @@ GO
     --------------------------------------------------------------------------------
     PRINT '--- PRUEBA 13: Eliminar al jugador 11 de la alineación (Baja) ---';
     BEGIN TRY
-        EXEC partido.sp_EliminarAlineacion @id_formacion = 1, @id_jugador = 11;
+        EXEC partido.sp_EliminarAlineacion @id_formacion = 2, @id_jugador = 11;
 
         PRINT 'ÉXITO: Jugador 11 eliminado correctamente de la alineación.';
     END TRY

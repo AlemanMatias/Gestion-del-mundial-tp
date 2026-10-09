@@ -40,6 +40,7 @@ DELETE FROM administracion.Fase_Torneo;
 DELETE FROM administracion.Pais;
 GO
 
+/*
 DBCC CHECKIDENT ('publicidad.Exhibicion', RESEED, 0) WITH NO_INFOMSGS;
 DBCC CHECKIDENT ('publicidad.Espacio_publicitario', RESEED, 0) WITH NO_INFOMSGS;
 DBCC CHECKIDENT ('publicidad.Pieza_Pais_Interes', RESEED, 0) WITH NO_INFOMSGS;
@@ -66,6 +67,7 @@ DBCC CHECKIDENT ('administracion.Club', RESEED, 0) WITH NO_INFOMSGS;
 DBCC CHECKIDENT ('administracion.Fase_Torneo', RESEED, 0) WITH NO_INFOMSGS;
 DBCC CHECKIDENT ('administracion.Pais', RESEED, 0) WITH NO_INFOMSGS;
 GO
+*/
 
 -- =========================================================================================
 -- 2. PAÍSES (huso_horario = offset de referencia del mercado, en verano boreal)
@@ -174,6 +176,11 @@ INSERT INTO @plantel VALUES
     ('Lautaro',  'Martínez',  '1997-08-22', 'Inter',             'Delantero',     'Argentina', 22),
     ('Enzo',     'Fernández', '2001-01-17', 'Chelsea',           'Mediocampista', 'Argentina', 24),
     ('Lisandro', 'Martínez',  '1998-01-18', 'Manchester United', 'Defensor',      'Argentina', 25),
+     -- Suplentes adicionales de Argentina para permitir hasta 5 cambios / 4 ventanas
+    ('Nicolás',  'Otamendi',  '1988-02-12', 'Benfica',           'Defensor',      'Argentina', 19),
+    ('Paulo',    'Dybala',    '1993-11-15', 'AS Roma',           'Delantero',     'Argentina', 21),
+    ('Gerónimo', 'Rulli',     '1992-05-20', 'Olympique Marsella','Arquero',       'Argentina', 12),
+    ('Giovani',  'Lo Celso',  '1996-04-09', 'Real Betis',        'Mediocampista', 'Argentina', 16),
     -- Argelia (ficticios)
     ('Karim',    'Benali',    '1993-03-10', 'Club Argel FC',     'Arquero',       'Argelia',    1),
     ('Yacine',   'Boudiaf',   '1996-07-12', 'Club Argel FC',     'Defensor',      'Argelia',    2),
@@ -214,7 +221,7 @@ INSERT INTO partido.Partido
     (fecha_hora_local, fecha_hora_utc, ID_Fase, ID_Sede, ID_Seleccion_Local, ID_Seleccion_Visitante)
 SELECT v.local_dt, DATEADD(HOUR, v.horas_a_utc, v.local_dt), f.ID, sd.ID, sl.ID, sv.ID
 FROM (VALUES
-    ('2026-06-16 17:00', 5, 'Fase de Grupos', 'AT&T Stadium',    'Argentina', 'Argelia'),
+    -- ('2026-06-16 17:00', 5, 'Fase de Grupos', 'AT&T Stadium',    'Argentina', 'Argelia'), -- test_05 - Prueba 1
     ('2026-06-11 13:00', 6, 'Fase de Grupos', 'Estadio Azteca',  'México',    'Polonia'),
     ('2026-07-01 15:00', 4, 'Dieciseisavos',  'MetLife Stadium', 'Francia',   'Alemania')
 ) AS v(local_dt, horas_a_utc, fase, sede, local, visita)
@@ -337,3 +344,4 @@ GO
 PRINT 'OK: datos semilla cargados correctamente en Mundial2026.';
 GO
 
+select * from administracion.Seleccion
