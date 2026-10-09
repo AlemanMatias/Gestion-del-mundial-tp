@@ -21,12 +21,20 @@ GO
     --------------------------------------------------------------------------------
     PRINT '--- INICIO PRUEBA 1: Crear partido exitoso ---';
     BEGIN TRY
+        -- Obtenemos IDs reales de las selecciones
+        DECLARE @id_arg INT, @id_pol INT;
+        SELECT @id_arg = s.ID FROM administracion.Seleccion s JOIN administracion.Pais p ON p.ID = s.ID_Pais WHERE p.nombre = 'Argentina';
+        SELECT @id_pol = s.ID FROM administracion.Seleccion s JOIN administracion.Pais p ON p.ID = s.ID_Pais WHERE p.nombre = 'Polonia';
+
+        -- Limpiamos si existiera previamente de una corrida anterior para garantizar éxito
+        DELETE FROM partido.Partido WHERE ID_Sede = 1 AND fecha_hora_local = '2026-06-18 17:00:00';
+
         EXEC partido.sp_CrearPartido 
             @id_sede = 1,                 -- Estadio Azteca (Sede ID 1)
             @id_fase = 1,                 -- Fase de Grupos (Fase ID 1)
-            @fecha_hora_local = '2026-06-16 17:00:00',
-            @id_local = 1,                -- Argentina (Selección ID 1)
-            @id_visitante = 2;            -- Argelia (Selección ID 2)
+            @fecha_hora_local = '2026-06-18 17:00:00',
+            @id_local = @id_arg,
+            @id_visitante = @id_pol;
 
         PRINT 'ÉXITO: El partido se creó correctamente y pasó la prueba.';
     END TRY
@@ -42,12 +50,15 @@ GO
     --------------------------------------------------------------------------------
     PRINT '--- INICIO PRUEBA 2: Error por selecciones inexistentes ---';
     BEGIN TRY
+        DECLARE @id_arg INT;
+        SELECT @id_arg = s.ID FROM administracion.Seleccion s JOIN administracion.Pais p ON p.ID = s.ID_Pais WHERE p.nombre = 'Argentina';
+
         EXEC partido.sp_CrearPartido 
             @id_sede = 1,
             @id_fase = 1,
             @fecha_hora_local = '2026-06-18 20:00:00',
-            @id_local = 999,              -- Selección inexistente
-            @id_visitante = 2;
+            @id_local = 9999,             -- Selección inexistente
+            @id_visitante = @id_arg;
 
         PRINT 'FALLO: Debería haber dado error de selección inexistente y no lo dio.';
     END TRY
@@ -62,12 +73,15 @@ GO
     --------------------------------------------------------------------------------
     PRINT '--- INICIO PRUEBA 3: Error por selecciones idénticas ---';
     BEGIN TRY
+        DECLARE @id_arg INT;
+        SELECT @id_arg = s.ID FROM administracion.Seleccion s JOIN administracion.Pais p ON p.ID = s.ID_Pais WHERE p.nombre = 'Argentina';
+
         EXEC partido.sp_CrearPartido 
             @id_sede = 1,
             @id_fase = 1,
             @fecha_hora_local = '2026-06-20 18:00:00',
-            @id_local = 1,                -- Argentina
-            @id_visitante = 1;            -- Argentina (Mismo equipo)
+            @id_local = @id_arg,
+            @id_visitante = @id_arg;      -- Mismo equipo
 
         PRINT 'FALLO: Debería haber dado error por equipos iguales y no lo dio.';
     END TRY
@@ -82,12 +96,16 @@ GO
     --------------------------------------------------------------------------------
     PRINT '--- INICIO PRUEBA 4: Error por sede inexistente ---';
     BEGIN TRY
+        DECLARE @id_arg INT, @id_alg INT;
+        SELECT @id_arg = s.ID FROM administracion.Seleccion s JOIN administracion.Pais p ON p.ID = s.ID_Pais WHERE p.nombre = 'Argentina';
+        SELECT @id_alg = s.ID FROM administracion.Seleccion s JOIN administracion.Pais p ON p.ID = s.ID_Pais WHERE p.nombre = 'Argelia';
+
         EXEC partido.sp_CrearPartido 
-            @id_sede = 999,               -- Sede que no existe
+            @id_sede = 9999,              -- Sede que no existe
             @id_fase = 1,
             @fecha_hora_local = '2026-06-22 15:00:00',
-            @id_local = 1,
-            @id_visitante = 2;
+            @id_local = @id_arg,
+            @id_visitante = @id_alg;
 
         PRINT 'FALLO: Debería haber dado error por sede inexistente y no lo dio.';
     END TRY
@@ -102,12 +120,16 @@ GO
     --------------------------------------------------------------------------------
     PRINT '--- INICIO PRUEBA 5: Error por fase inválida ---';
     BEGIN TRY
+        DECLARE @id_arg INT, @id_alg INT;
+        SELECT @id_arg = s.ID FROM administracion.Seleccion s JOIN administracion.Pais p ON p.ID = s.ID_Pais WHERE p.nombre = 'Argentina';
+        SELECT @id_alg = s.ID FROM administracion.Seleccion s JOIN administracion.Pais p ON p.ID = s.ID_Pais WHERE p.nombre = 'Argelia';
+
         EXEC partido.sp_CrearPartido 
             @id_sede = 1,
-            @id_fase = 99,                -- Fase inexistente
+            @id_fase = 9999,              -- Fase inexistente
             @fecha_hora_local = '2026-06-25 15:00:00',
-            @id_local = 1,
-            @id_visitante = 2;
+            @id_local = @id_arg,
+            @id_visitante = @id_alg;
 
         PRINT 'FALLO: Debería haber dado error por fase inválida y no lo dio.';
     END TRY
@@ -124,12 +146,16 @@ GO
 
     -- 2. Intentamos insertar otro partido en la MISMA sede y MISMO horario
     BEGIN TRY
+        DECLARE @id_bra INT, @id_fra INT;
+        SELECT @id_bra = s.ID FROM administracion.Seleccion s JOIN administracion.Pais p ON p.ID = s.ID_Pais WHERE p.nombre = 'Brasil';
+        SELECT @id_fra = s.ID FROM administracion.Seleccion s JOIN administracion.Pais p ON p.ID = s.ID_Pais WHERE p.nombre = 'Francia';
+
         EXEC partido.sp_CrearPartido 
             @id_sede = 1,                 -- Misma sede (Estadio Azteca) que la prueba EXITO
             @id_fase = 1,
-            @fecha_hora_local = '2026-06-30 16:00:00', -- Misa fecha y hora exactas
-            @id_local = 5,                -- Otro equipo (ej: Francia)
-            @id_visitante = 6;            -- Otro equipo (ej: Alemania)
+            @fecha_hora_local = '2026-06-18 17:00:00', -- Misma fecha y hora exactas que la Prueba 1
+            @id_local = @id_bra,
+            @id_visitante = @id_fra;
 
         PRINT '>> FALLO: Debería haber bloqueado el solapamiento en la sede y no lo hizo.';
     END TRY
@@ -148,9 +174,13 @@ GO
     --------------------------------------------------------------------------------
     PRINT '--- PRUEBA 1: Registrar formación (Alta) ---';
     BEGIN TRY
+        DECLARE @id_partido_arg INT, @id_sel_arg INT;
+        SELECT @id_sel_arg = s.ID FROM administracion.Seleccion s JOIN administracion.Pais p ON p.ID = s.ID_Pais WHERE p.nombre = 'Argentina';
+        SELECT TOP 1 @id_partido_arg = ID FROM partido.Partido WHERE ID_Seleccion_Local = @id_sel_arg OR ID_Seleccion_Visitante = @id_sel_arg;
+
         EXEC partido.sp_RegistrarFormacion  
-            @id_partido = 2, -- argentina - argelia 
-            @id_seleccion = 1, -- seleccion argentina 
+            @id_partido = @id_partido_arg,
+            @id_seleccion = @id_sel_arg,
             @esquema_tactico = '4-3-3';
 
         PRINT 'ÉXITO: Formación 4-3-3 registrada correctamente.';
@@ -168,9 +198,13 @@ GO
     --------------------------------------------------------------------------------
     PRINT '--- PRUEBA 2: Modificar formación existente (Update automático) ---';
     BEGIN TRY
+        DECLARE @id_partido_arg INT, @id_sel_arg INT;
+        SELECT @id_sel_arg = s.ID FROM administracion.Seleccion s JOIN administracion.Pais p ON p.ID = s.ID_Pais WHERE p.nombre = 'Argentina';
+        SELECT TOP 1 @id_partido_arg = ID FROM partido.Partido WHERE ID_Seleccion_Local = @id_sel_arg OR ID_Seleccion_Visitante = @id_sel_arg;
+
         EXEC partido.sp_RegistrarFormacion 
-            @id_partido = 1, 
-            @id_seleccion = 1, 
+            @id_partido = @id_partido_arg, 
+            @id_seleccion = @id_sel_arg, 
             @esquema_tactico = '4-4-2';
 
         PRINT 'ÉXITO: La formación se actualizó a 4-4-2 correctamente.';
@@ -187,9 +221,13 @@ GO
     --------------------------------------------------------------------------------
     PRINT '--- PRUEBA 3: Eliminar formación (Baja) ---';
     BEGIN TRY
+        DECLARE @id_partido_arg INT, @id_sel_arg INT;
+        SELECT @id_sel_arg = s.ID FROM administracion.Seleccion s JOIN administracion.Pais p ON p.ID = s.ID_Pais WHERE p.nombre = 'Argentina';
+        SELECT TOP 1 @id_partido_arg = ID FROM partido.Partido WHERE ID_Seleccion_Local = @id_sel_arg OR ID_Seleccion_Visitante = @id_sel_arg;
+
         EXEC partido.sp_EliminarFormacion 
-            @id_partido = 1, 
-            @id_seleccion = 1;
+            @id_partido = @id_partido_arg, 
+            @id_seleccion = @id_sel_arg;
 
         PRINT 'ÉXITO: Formación eliminada correctamente de la base de datos.';
     END TRY
@@ -204,9 +242,13 @@ GO
     --------------------------------------------------------------------------------
     PRINT '--- PRUEBA 4: Error al intentar eliminar formación inexistente ---';
     BEGIN TRY
+        DECLARE @id_partido_arg INT, @id_sel_arg INT;
+        SELECT @id_sel_arg = s.ID FROM administracion.Seleccion s JOIN administracion.Pais p ON p.ID = s.ID_Pais WHERE p.nombre = 'Argentina';
+        SELECT TOP 1 @id_partido_arg = ID FROM partido.Partido WHERE ID_Seleccion_Local = @id_sel_arg OR ID_Seleccion_Visitante = @id_sel_arg;
+
         EXEC partido.sp_EliminarFormacion 
-            @id_partido = 1, 
-            @id_seleccion = 1; -- Ya la borramos en el paso anterior
+            @id_partido = @id_partido_arg, 
+            @id_seleccion = @id_sel_arg; -- Ya la borramos en el paso anterior
 
         PRINT 'FALLO: Debería haber indicado que no existe la formación a borrar.';
     END TRY
@@ -225,22 +267,34 @@ GO
     --------------------------------------------------------------------------------
     PRINT '--- PRUEBAS 1 a 11: Registrando los 11 titulares permitidos ---';
     BEGIN TRY
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 1, @es_titular = 1;
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 2, @es_titular = 1;
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 3, @es_titular = 1;
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 4, @es_titular = 1;
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 5, @es_titular = 1;
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 6, @es_titular = 1;
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 7, @es_titular = 1;
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 8, @es_titular = 1;
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 9, @es_titular = 1;
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 10, @es_titular = 1;
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 11, @es_titular = 1;
+        DECLARE @id_partido_arg INT, @id_formacion INT, @id_sel_arg INT;
+        SELECT @id_sel_arg = s.ID FROM administracion.Seleccion s JOIN administracion.Pais p ON p.ID = s.ID_Pais WHERE p.nombre = 'Argentina';
+        SELECT TOP 1 @id_partido_arg = ID FROM partido.Partido WHERE ID_Seleccion_Local = @id_sel_arg OR ID_Seleccion_Visitante = @id_sel_arg;
 
-        --SUPLENTES
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 12, @es_titular = 0; 
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 13, @es_titular = 0;
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 14, @es_titular = 0; 
+        -- Se crea formacion ya que fue eliminada en el test anterior
+        EXEC partido.sp_RegistrarFormacion  
+            @id_partido = @id_partido_arg,
+            @id_seleccion = @id_sel_arg,
+            @esquema_tactico = '4-3-3';
+
+        SELECT TOP 1 @id_formacion = ID FROM partido.Formacion_Partido WHERE ID_Partido = @id_partido_arg AND ID_Seleccion = @id_sel_arg;
+
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = @id_formacion, @id_jugador = 1, @es_titular = 1;
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = @id_formacion, @id_jugador = 2, @es_titular = 1;
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = @id_formacion, @id_jugador = 3, @es_titular = 1;
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = @id_formacion, @id_jugador = 4, @es_titular = 1;
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = @id_formacion, @id_jugador = 5, @es_titular = 1;
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = @id_formacion, @id_jugador = 6, @es_titular = 1;
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = @id_formacion, @id_jugador = 7, @es_titular = 1;
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = @id_formacion, @id_jugador = 8, @es_titular = 1;
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = @id_formacion, @id_jugador = 9, @es_titular = 1;
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = @id_formacion, @id_jugador = 10, @es_titular = 1;
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = @id_formacion, @id_jugador = 11, @es_titular = 1;
+                                                            
+        --SUPLENTES                                         
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = @id_formacion, @id_jugador = 12, @es_titular = 0; 
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = @id_formacion, @id_jugador = 13, @es_titular = 0; 
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = @id_formacion, @id_jugador = 14, @es_titular = 0; 
         PRINT 'ÉXITO: Los 11 primeros titulares se registraron correctamente.';
     END TRY
     BEGIN CATCH
@@ -254,7 +308,11 @@ GO
     --------------------------------------------------------------------------------
     PRINT '--- PRUEBA 12: Intentar agregar un titular 12 (Debe fallar) ---';
     BEGIN TRY
-        EXEC partido.sp_RegistrarAlineacion @id_formacion = 1, @id_jugador = 12, @es_titular = 1;
+        DECLARE @id_formacion INT, @id_sel_arg INT;
+        SELECT @id_sel_arg = s.ID FROM administracion.Seleccion s JOIN administracion.Pais p ON p.ID = s.ID_Pais WHERE p.nombre = 'Argentina';
+        SELECT TOP 1 @id_formacion = fp.ID FROM partido.Formacion_Partido fp WHERE fp.ID_Seleccion = @id_sel_arg ORDER BY fp.ID DESC;
+
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = @id_formacion, @id_jugador = 12, @es_titular = 1;
 
         PRINT 'FALLO: El sistema permitió registrar más de 11 titulares.';
     END TRY
@@ -268,7 +326,11 @@ GO
     --------------------------------------------------------------------------------
     PRINT '--- PRUEBA 13: Eliminar al jugador 11 de la alineación (Baja) ---';
     BEGIN TRY
-        EXEC partido.sp_EliminarAlineacion @id_formacion = 1, @id_jugador = 11;
+        DECLARE @id_formacion INT, @id_sel_arg INT;
+        SELECT @id_sel_arg = s.ID FROM administracion.Seleccion s JOIN administracion.Pais p ON p.ID = s.ID_Pais WHERE p.nombre = 'Argentina';
+        SELECT TOP 1 @id_formacion = fp.ID FROM partido.Formacion_Partido fp WHERE fp.ID_Seleccion = @id_sel_arg ORDER BY fp.ID DESC;
+
+        EXEC partido.sp_EliminarAlineacion @id_formacion = @id_formacion, @id_jugador = 11;
 
         PRINT 'ÉXITO: Jugador 11 eliminado correctamente de la alineación.';
     END TRY
@@ -291,8 +353,9 @@ GO
 
     PRINT '--- Probando límite de 3 ventanas ---';
     BEGIN
-        -- Limpiamos o usamos un partido nuevo donde se hagan cambios individuales en minutos separados
-        DECLARE @id_partido_ventana INT = 2; -- Asumimos otro partido de prueba
+        DECLARE @id_partido_ventana INT, @id_sel_arg INT;
+        SELECT @id_sel_arg = s.ID FROM administracion.Seleccion s JOIN administracion.Pais p ON p.ID = s.ID_Pais WHERE p.nombre = 'Argentina';
+        SELECT TOP 1 @id_partido_ventana = ID FROM partido.Partido WHERE ID_Seleccion_Local = @id_sel_arg OR ID_Seleccion_Visitante = @id_sel_arg;
 
         -- Ventana 1 (Minuto 60)
         BEGIN TRY EXEC partido.sp_RegistrarSustitucion @id_partido_ventana, 1, 13, 60, 'Lesion'; PRINT 'Ventana 1: OK'; END TRY BEGIN CATCH PRINT ERROR_MESSAGE(); END CATCH;
@@ -302,11 +365,6 @@ GO
 
         -- Ventana 3 (Minuto 80)
         BEGIN TRY EXEC partido.sp_RegistrarSustitucion @id_partido_ventana, 3, 14, 80, 'Tactico'; PRINT 'Ventana 3: OK'; END TRY BEGIN CATCH PRINT ERROR_MESSAGE(); END CATCH;
-
-
-        --para probar correctamente la 4ta ventana se debe agregar mas jugadores de la seleccion argentina en 00_semillas
-        --ya que si son 14 , hay 11 titulares , 3 suplentes -> no es posible un 4to cambio , una 4ta ventana ( si los 3 cambios 
-        --se realizan en ventanas distintas) 
 
         -- INTENTO DE 4TA VENTANA (Minuto 88 - Minuto distinto a 60, 70 y 80)
         BEGIN TRY 

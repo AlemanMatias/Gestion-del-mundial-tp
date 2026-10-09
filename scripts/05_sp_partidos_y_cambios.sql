@@ -1,15 +1,22 @@
 
 /*
-  Entrega 5 - Bases de Datos Aplicada - Comisión 02-5600
-  Fecha: Octubre 2026
-  Integrantes: Aleman Flores Matias, Gamarra Bravo Sidney, Perreira Carlos, Villa Brenda
-  Descripción: [creacion de SP de
-                partidos (valido datos ingresados menos goles y asistencia_publico)
+  UNIVERSIDAD NACIONAL DE LA MATANZA (UNLaM)
+   Departamento de Ingeniería e Investigaciones Tecnológicas
+   Asignatura: Bases de Datos Aplicada (3641)
+   Comisión: 02-5600 (Viernes Tarde)
+   
+   TRABAJO PRÁCTICO - SISTEMA DE REGISTRO Y GESTIÓN DEL MUNDIAL DE FÚTBOL 2026
+   
+   Integrantes del Grupo:
+     - Aleman Flores, Matias Osvaldo 
+     - Gamarra Bravo, Sidney Maribel
+     - Perreira, Carlos Manuel
+     - Villa, Brenda
+
+   Descripcion: creacion de SP de partidos (valido datos ingresados menos goles y asistencia_publico)
                 alta/actualizacion/baja de formacion de partido,
                 alta/actualizacion/baja de alineacion de la seleccion de un partido (controlo que sea como maximo 11 titulares),
                 registro de sustituciones (tengo en cuenta el maximo de 3 ventanas )
-                
-               ]
 */
 
 USE Mundial2026;
@@ -85,7 +92,7 @@ BEGIN
             DECLARE @id_partido INT = SCOPE_IDENTITY();
 
             -- invocacion de SP de espacios de publicidad
-            --EXEC publicidad.sp_GenerarEspaciosPartido @id_partido;
+            EXEC publicidad.sp_GenerarEspaciosPartido @id_partido;
             
             COMMIT TRANSACTION;
 

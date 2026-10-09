@@ -13,14 +13,17 @@
      - Villa, Brenda
      
    Script: test_partido_inaugural.sql
-   Descripción: Simulacion de partido inaugural real integrando modulos de administracion y partidos. Asegurarse de que la base este vacia.
+   Descripción: Simulación del Partido Inaugural oficial integrando los 4 Módulos del Sistema.
+                Requisito previo: Haber ejecutado '00_datos_semilla.sql' previamente para contar
+                con los datos maestros (árbitros, anunciantes, campañas y piezas publicitarias).
+                No requiere vaciar la base previa; corre bajo ROLLBACK dejando la base intacta.
 
                 PARTIDO INAUGURAL OFICIAL - COPA MUNDIAL DE LA FIFA 2026
                 11 de junio de 2026 - Estadio Azteca (Ciudad de México)
                 MÉXICO 2 - 0 SUDÁFRICA (Grupo A)
                 
                 Goles del partido:
-                  - 09' Julián Quiñones (1-0)
+                  - 09' Julián Quiñones (Asistencia: Hirving Lozano) (1-0)
                   - 67' Raúl Jiménez (2-0)
                 
                 Integración de Procedimientos Almacenados:
@@ -33,10 +36,17 @@
                      - sp_RegistrarConvocatoria (Dorsales correlativos 1 al 26 y camiseta 1 para Arquero)
                      - sp_ReemplazarConvocadoUltimoMomento (Baja médica real por lesión previa y herencia de camiseta)
                   2. MÓDULO 2 (Partidos y Cambios):
-                     - sp_CrearPartido (11 de junio de 2026 en Estadio Azteca con cálculo UTC)
+                     - sp_CrearPartido (11 de junio de 2026 en Estadio Azteca con cálculo UTC y generación de slots publicitarios)
                      - sp_RegistrarFormacion (México 4-3-3 y Sudáfrica 4-2-3-1)
                      - sp_RegistrarAlineacion (11 titulares reglamentarios y suplentes)
                      - sp_RegistrarSustitucion (Ventanas IFAB de cambios en el 2do tiempo)
+                  3. MÓDULO 3 (Disciplina, Árbitros y Goles):
+                     - sp_DesignarArbitro (Wilton Sampaio de Brasil - Neutral FIFA Elite)
+                     - sp_RegistrarTarjetaYSuspension (Amarillas oficiales a Mvala y Álvarez)
+                     - sp_RegistrarGol (Goles oficiales con recálculo dinámico del marcador de partido)
+                  4. MÓDULO 4 (Publicidad y Exhibición Comercial):
+                     - sp_GenerarEspaciosPartido (Slots perimetrales 1 a 4 generados automáticamente por sp_CrearPartido)
+                     - sp_AsignarPublicidadPartido (Algoritmo de Prioridad Comercial: país participante México, PBI, Prime Time y costo)
 */
 
 USE Mundial2026;
@@ -208,7 +218,7 @@ BEGIN TRY
     PRINT '   + Plantel de México 2026 cargado con reemplazo por lesión exitoso.';
 
     -- -----------------------------------------------------------------------------------------
-    -- NÓMINA OFICIAL SUDÁFRICA (BAFANA BAFANA) 2026
+    -- NÓMINA OFICIAL SUDÁFRICA 2026
     -- -----------------------------------------------------------------------------------------
     DECLARE @NominaRsa2026 TABLE (
         id INT IDENTITY(1,1),
@@ -262,6 +272,24 @@ BEGIN TRY
     -- Partido Inaugural Mundial 2026: 11 de junio de 2026 a las 13:00 local (19:00 UTC)
     DECLARE @fecha_inaugural DATETIME = '2026-06-11 13:00:00';
 
+    -- Si en la base de datos existía previamente un partido cargado en esa sede y horario,
+    -- lo removemos temporalmente dentro de la transacción aislada para poder probar sp_CrearPartido limpiamente:
+    DECLARE @id_partido_previo INT;
+    SELECT @id_partido_previo = ID FROM partido.Partido WHERE ID_Sede = @id_sede_azteca AND fecha_hora_local = @fecha_inaugural;
+
+    IF @id_partido_previo IS NOT NULL
+    BEGIN
+        DELETE FROM publicidad.Exhibicion WHERE ID_espacio IN (SELECT ID FROM publicidad.Espacio_publicitario WHERE ID_Partido = @id_partido_previo);
+        DELETE FROM publicidad.Espacio_publicitario WHERE ID_Partido = @id_partido_previo;
+        DELETE FROM partido.Gol WHERE ID_Partido = @id_partido_previo;
+        DELETE FROM partido.Tarjeta WHERE ID_Partido = @id_partido_previo;
+        DELETE FROM partido.Sustitucion WHERE ID_Partido = @id_partido_previo;
+        DELETE FROM arbitraje.Designacion_Arbitral WHERE ID_Partido = @id_partido_previo;
+        DELETE FROM partido.Alineacion WHERE ID_Formacion IN (SELECT ID FROM partido.Formacion_Partido WHERE ID_Partido = @id_partido_previo);
+        DELETE FROM partido.Formacion_Partido WHERE ID_Partido = @id_partido_previo;
+        DELETE FROM partido.Partido WHERE ID = @id_partido_previo;
+    END;
+
     SELECT @id_partido = ID FROM partido.Partido 
     WHERE ID_Fase = @id_fase_grupos 
       AND ((ID_Seleccion_Local = @id_sel_mex AND ID_Seleccion_Visitante = @id_sel_rsa)
@@ -293,10 +321,9 @@ BEGIN TRY
     EXEC partido.sp_RegistrarFormacion @id_partido = @id_partido, @id_seleccion = @id_sel_rsa, @esquema_tactico = '4-4-2';
     SELECT @id_form_rsa = ID FROM partido.Formacion_Partido WHERE ID_Partido = @id_partido AND ID_Seleccion = @id_sel_rsa;
 
-    -- 5.A. 11 Titulares de México
     DECLARE @j_malagon INT, @j_sanchez INT, @j_montes INT, @j_alvarez INT, @j_vasquez INT;
     DECLARE @j_gallardo INT, @j_chavez INT, @j_pineda INT, @j_quinones INT, @j_jimenez INT, @j_gimenez INT;
-    DECLARE @j_antuna INT, @j_romo INT, @j_acevedo INT;
+    DECLARE @j_antuna INT, @j_romo INT, @j_acevedo INT, @j_lozano INT;
 
     SELECT @j_malagon = ID FROM administracion.Jugador WHERE nombre = 'Luis Ángel' AND apellido = 'Malagón';
     SELECT @j_sanchez = ID FROM administracion.Jugador WHERE nombre = 'Jorge' AND apellido = 'Sánchez';
@@ -312,6 +339,7 @@ BEGIN TRY
     SELECT @j_antuna = ID FROM administracion.Jugador WHERE nombre = 'Uriel' AND apellido = 'Antuna';
     SELECT @j_romo = ID FROM administracion.Jugador WHERE nombre = 'Luis' AND apellido = 'Romo';
     SELECT @j_acevedo = ID FROM administracion.Jugador WHERE nombre = 'Carlos' AND apellido = 'Acevedo';
+    SELECT @j_lozano = ID FROM administracion.Jugador WHERE nombre = 'Hirving' AND apellido = 'Lozano';
 
     EXEC partido.sp_RegistrarAlineacion @id_formacion = @id_form_mex, @id_jugador = @j_malagon,   @es_titular = 1;
     EXEC partido.sp_RegistrarAlineacion @id_formacion = @id_form_mex, @id_jugador = @j_sanchez,   @es_titular = 1;
@@ -398,6 +426,81 @@ BEGIN TRY
     PRINT '   + Sustituciones registradas dentro del marco reglamentario IFAB.';
 
     -- =========================================================================================
+    -- ETAPA 6.BIS: ARBITRAJE, DISCIPLINA Y GOLES OFICIALES (MÓDULO 3)
+    -- =========================================================================================
+    PRINT '>> [ETAPA 6.BIS] Designando árbitros, tarjetas y registrando goles del partido inaugural...';
+
+    -- 1. Designación de Árbitro Neutral FIFA (Wilton Sampaio de Brasil)
+    DECLARE @id_arbitro_sampaio INT;
+    SELECT TOP 1 @id_arbitro_sampaio = ID FROM arbitraje.Arbitro WHERE apellido = 'Sampaio';
+
+    IF @id_arbitro_sampaio IS NOT NULL
+    BEGIN
+        EXEC arbitraje.sp_DesignarArbitro
+            @ID_Partido = @id_partido,
+            @ID_Arbitro = @id_arbitro_sampaio,
+            @Rol = 'Árbitro Principal',
+            @Informe = 'Designación reglamentaria de árbitro neutral de CONMEBOL para el partido inaugural.';
+        PRINT '   + Árbitro neutral designado (Wilton Sampaio - Brasil).';
+    END;
+
+    -- 2. Registro de Disciplina (Módulo 3):
+    -- Minuto 41: Tarjeta Amarilla a Mothobi Mvala (Sudáfrica) por falta táctica
+    EXEC partido.sp_RegistrarTarjetaYSuspension
+        @ID_Partido = @id_partido,
+        @ID_Jugador = @j_mvala,
+        @ID_Cuerpo_Tecnico = NULL,
+        @Minuto = 41,
+        @Motivo = 'Falta táctica reiterada',
+        @Tipo = 'AMARILLA',
+        @Es_Doble_Amarilla = 0,
+        @Partidos_Suspension = 1;
+
+    -- Minuto 84: Tarjeta Amarilla a Edson Álvarez (México) por conducta antideportiva
+    EXEC partido.sp_RegistrarTarjetaYSuspension
+        @ID_Partido = @id_partido,
+        @ID_Jugador = @j_alvarez,
+        @ID_Cuerpo_Tecnico = NULL,
+        @Minuto = 84,
+        @Motivo = 'Discusión y conducta antideportiva',
+        @Tipo = 'AMARILLA',
+        @Es_Doble_Amarilla = 0,
+        @Partidos_Suspension = 1;
+    PRINT '   + Tarjetas disciplinarias registradas con éxito.';
+
+    -- 3. Registro Oficial de Goles (Módulo 3 - sp_RegistrarGol):
+    -- Gol 1: Minuto 09 - Julián Quiñones (Asistencia de Hirving Lozano) para México
+    EXEC partido.sp_RegistrarGol
+        @ID_Partido = @id_partido,
+        @ID_Jugador_autor = @j_quinones,
+        @ID_Jugador_asistencia = @j_lozano,
+        @ID_Seleccion = @id_sel_mex,
+        @Minuto = 9,
+        @Tipo = 'Jugada',
+        @Periodo = 'Primer Tiempo';
+
+    -- Gol 2: Minuto 67 - Raúl Jiménez (Jugada individual) para México
+    EXEC partido.sp_RegistrarGol
+        @ID_Partido = @id_partido,
+        @ID_Jugador_autor = @j_jimenez,
+        @ID_Jugador_asistencia = NULL,
+        @ID_Seleccion = @id_sel_mex,
+        @Minuto = 67,
+        @Tipo = 'Jugada',
+        @Periodo = 'Segundo Tiempo';
+    PRINT '   + Goles oficiales asentados vía sp_RegistrarGol (México 2 - 0 Sudáfrica).';
+
+    -- =========================================================================================
+    -- ETAPA 6.TER: ASIGNACIÓN DE PUBLICIDAD COMERCIAL (MÓDULO 4)
+    -- =========================================================================================
+    PRINT '>> [ETAPA 6.TER] Ejecutando algoritmo de asignación publicitaria vía publicidad.sp_AsignarPublicidadPartido...';
+    
+    -- Los 4 slots perimetrales ya fueron generados automáticamente en la Etapa 4 por sp_CrearPartido.
+    -- Asignamos las publicidades optimizadas según el país anfitrión (México), PBI, horario y costo:
+    EXEC publicidad.sp_AsignarPublicidadPartido @id_partido = @id_partido;
+    PRINT '   + Publicidad y exhibición en paneles perimetrales asignada exitosamente.';
+
+    -- =========================================================================================
     -- ETAPA 7: RESULTADO FINAL Y PLANILLAS OFICIALES DEL PARTIDO INAUGURAL 2026
     -- =========================================================================================
     PRINT '======================================================================';
@@ -405,16 +508,22 @@ BEGIN TRY
     PRINT 'Goles: 09'' Julián Quiñones, 67'' Raúl Jiménez';
     PRINT '======================================================================';
 
-    -- 1. Ficha del Partido
+    -- 1. Ficha del Partido (Marcador Oficial actualizado dinámicamente)
     SELECT 
         p.ID AS [ID Partido],
         '11/06/2026 13:00' AS [Fecha Inaugural Local],
         p.fecha_hora_utc AS [Hora UTC Oficial],
         s.nombre AS [Estadio Sede],
         s.ciudad AS [Ciudad],
-        pl.nombre + ' (2)' AS [Local],
-        pv.nombre + ' (0)' AS [Visitante],
-        'México 2 - 0 Sudáfrica (FINAL)' AS [Resultado Inaugural]
+        pl.nombre AS [Local],
+        p.goles_local AS [Goles Local],
+        pv.nombre AS [Visitante],
+        p.goles_visitante AS [Goles Visitante],
+        CASE 
+            WHEN p.goles_local > p.goles_visitante THEN 'Victoria de ' + pl.nombre
+            WHEN p.goles_local < p.goles_visitante THEN 'Victoria de ' + pv.nombre
+            ELSE 'Empate'
+        END AS [Estado Oficial]
     FROM partido.Partido p
     JOIN administracion.Sede s ON s.ID = p.ID_Sede
     JOIN administracion.Seleccion sl ON sl.ID = p.ID_Seleccion_Local
@@ -422,6 +531,49 @@ BEGIN TRY
     JOIN administracion.Seleccion sv ON sv.ID = p.ID_Seleccion_Visitante
     JOIN administracion.Pais pv ON pv.ID = sv.ID_Pais
     WHERE p.ID = @id_partido;
+
+    -- 1.BIS. Tabla de Goles Oficiales del Partido
+    SELECT 
+        g.minuto AS [Minuto],
+        g.periodo AS [Tiempo],
+        g.tipo AS [Tipo de Gol],
+        autor.apellido + ', ' + autor.nombre AS [Goleador],
+        ISNULL(asist.apellido + ', ' + asist.nombre, 'Sin asistencia') AS [Asistencia],
+        p_gol.nombre AS [Selección Beneficiada]
+    FROM partido.Gol g
+    JOIN administracion.Jugador autor ON autor.ID = g.ID_Jugador_autor
+    LEFT JOIN administracion.Jugador asist ON asist.ID = g.ID_Jugador_asistencia
+    JOIN administracion.Seleccion s_gol ON s_gol.ID = g.ID_Seleccion
+    JOIN administracion.Pais p_gol ON p_gol.ID = s_gol.ID_Pais
+    WHERE g.ID_Partido = @id_partido
+    ORDER BY g.minuto ASC;
+
+    -- 1.TER. Tabla de Tarjetas y Disciplina
+    SELECT 
+        t.minuto AS [Minuto],
+        t.tipo AS [Tarjeta],
+        t.motivo AS [Infracción],
+        j.apellido + ', ' + j.nombre AS [Amonestado / Expulsado],
+        p_inf.nombre AS [Selección]
+    FROM partido.Tarjeta t
+    JOIN administracion.Jugador j ON j.ID = t.ID_Jugador
+    JOIN administracion.Convocatoria c ON c.ID_Jugador = j.ID
+    JOIN administracion.Seleccion s_inf ON s_inf.ID = c.ID_Seleccion
+    JOIN administracion.Pais p_inf ON p_inf.ID = s_inf.ID_Pais
+    WHERE t.ID_Partido = @id_partido
+    ORDER BY t.minuto ASC;
+
+    -- 1.QUATER. Reporte de Árbitro Oficial del Partido
+    SELECT 
+        da.rol AS [Función Arbitral],
+        a.apellido + ', ' + a.nombre AS [Árbitro Oficial],
+        a.categoria AS [Categoría FIFA],
+        pa.nombre AS [Nacionalidad (Neutral)],
+        da.informe AS [Informe Técnico]
+    FROM arbitraje.Designacion_Arbitral da
+    JOIN arbitraje.Arbitro a ON a.ID = da.ID_Arbitro
+    JOIN administracion.Pais pa ON pa.ID = a.ID_Pais
+    WHERE da.ID_Partido = @id_partido;
 
     -- 2. Cuerpos Técnicos en el Banco
     SELECT 
@@ -511,6 +663,23 @@ BEGIN TRY
             AND t.minuto <= 70
       )
     ORDER BY p.nombre, c.dorsal ASC;
+
+    -- 6. Asignación Publicitaria Oficial (MÓDULO 4: Exhibición en Estadio Azteca)
+    SELECT 
+        ep.numero_slot AS [# Slot],
+        ep.nombre AS [Ubicación Panel],
+        pc.nombre AS [Pieza Publicitaria Exhibida],
+        c.nombre AS [Campaña Comercial],
+        an.nombre AS [Anunciante Oficial],
+        ex.orden_prioridad AS [Nivel de Prioridad],
+        '$' + CONVERT(VARCHAR, CAST(ex.monto_facturado AS MONEY), 1) AS [Monto Facturado]
+    FROM publicidad.Exhibicion ex
+    JOIN publicidad.Espacio_publicitario ep ON ep.ID = ex.ID_espacio
+    JOIN publicidad.Pieza_Contenido pc ON pc.ID = ex.ID_Pieza
+    JOIN publicidad.Campania c ON c.ID = pc.ID_Campania
+    JOIN publicidad.Anunciante an ON an.ID = c.ID_Anunciante
+    WHERE ep.ID_Partido = @id_partido
+    ORDER BY ep.numero_slot ASC;
 
 END TRY
 BEGIN CATCH
