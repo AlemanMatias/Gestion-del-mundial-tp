@@ -23,7 +23,7 @@
                 MÉXICO 2 - 0 SUDÁFRICA (Grupo A)
                 
                 Goles del partido:
-                  - 09' Julián Quiñones (Asistencia: Hirving Lozano) (1-0)
+                  - 09' Julián Quiñones (Asistencia: Santiago Giménez) (1-0)
                   - 67' Raúl Jiménez (2-0)
                 
                 Integración de Procedimientos Almacenados:
@@ -323,7 +323,7 @@ BEGIN TRY
 
     DECLARE @j_malagon INT, @j_sanchez INT, @j_montes INT, @j_alvarez INT, @j_vasquez INT;
     DECLARE @j_gallardo INT, @j_chavez INT, @j_pineda INT, @j_quinones INT, @j_jimenez INT, @j_gimenez INT;
-    DECLARE @j_antuna INT, @j_romo INT, @j_acevedo INT, @j_lozano INT;
+    DECLARE @j_antuna INT, @j_romo INT, @j_acevedo INT;
 
     SELECT @j_malagon = ID FROM administracion.Jugador WHERE nombre = 'Luis Ángel' AND apellido = 'Malagón';
     SELECT @j_sanchez = ID FROM administracion.Jugador WHERE nombre = 'Jorge' AND apellido = 'Sánchez';
@@ -339,7 +339,6 @@ BEGIN TRY
     SELECT @j_antuna = ID FROM administracion.Jugador WHERE nombre = 'Uriel' AND apellido = 'Antuna';
     SELECT @j_romo = ID FROM administracion.Jugador WHERE nombre = 'Luis' AND apellido = 'Romo';
     SELECT @j_acevedo = ID FROM administracion.Jugador WHERE nombre = 'Carlos' AND apellido = 'Acevedo';
-    SELECT @j_lozano = ID FROM administracion.Jugador WHERE nombre = 'Hirving' AND apellido = 'Lozano';
 
     EXEC partido.sp_RegistrarAlineacion @id_formacion = @id_form_mex, @id_jugador = @j_malagon,   @es_titular = 1;
     EXEC partido.sp_RegistrarAlineacion @id_formacion = @id_form_mex, @id_jugador = @j_sanchez,   @es_titular = 1;
@@ -469,11 +468,11 @@ BEGIN TRY
     PRINT '   + Tarjetas disciplinarias registradas con éxito.';
 
     -- 3. Registro Oficial de Goles (Módulo 3 - sp_RegistrarGol):
-    -- Gol 1: Minuto 09 - Julián Quiñones (Asistencia de Hirving Lozano) para México
+    -- Gol 1: Minuto 09 - Julián Quiñones (Asistencia de Santiago Giménez) para México
     EXEC partido.sp_RegistrarGol
         @ID_Partido = @id_partido,
         @ID_Jugador_autor = @j_quinones,
-        @ID_Jugador_asistencia = @j_lozano,
+        @ID_Jugador_asistencia = @j_gimenez,
         @ID_Seleccion = @id_sel_mex,
         @Minuto = 9,
         @Tipo = 'Jugada',
@@ -483,7 +482,7 @@ BEGIN TRY
     EXEC partido.sp_RegistrarGol
         @ID_Partido = @id_partido,
         @ID_Jugador_autor = @j_jimenez,
-        @ID_Jugador_asistencia = NULL,
+        @ID_Jugador_asistencia = @j_quinones,
         @ID_Seleccion = @id_sel_mex,
         @Minuto = 67,
         @Tipo = 'Jugada',
