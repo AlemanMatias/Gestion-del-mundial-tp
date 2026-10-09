@@ -213,7 +213,7 @@ BEGIN TRY
     PRINT '   + Plantel de México 2026 cargado con reemplazo por lesión exitoso.';
 
     -- -----------------------------------------------------------------------------------------
-    -- NÓMINA OFICIAL SUDÁFRICA (BAFANA BAFANA) 2026
+    -- NÓMINA OFICIAL SUDÁFRICA 2026
     -- -----------------------------------------------------------------------------------------
     DECLARE @NominaRsa2026 TABLE (
         id INT IDENTITY(1,1),

@@ -92,7 +92,7 @@ BEGIN
             DECLARE @id_partido INT = SCOPE_IDENTITY();
 
             -- invocacion de SP de espacios de publicidad
-            --EXEC publicidad.sp_GenerarEspaciosPartido @id_partido;
+            EXEC publicidad.sp_GenerarEspaciosPartido @id_partido;
             
             COMMIT TRANSACTION;
 

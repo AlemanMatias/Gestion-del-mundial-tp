@@ -302,6 +302,8 @@ FROM (VALUES
 JOIN publicidad.Pieza_Contenido pc ON pc.nombre = v.pieza
 JOIN administracion.Pais p ON p.nombre = v.pais;
 
+-- Se generan los espacios publicitarios iniciales exclusivamente para el Partido 1 (Argentina vs Argelia)
+-- Los partidos 2 y 3 quedan sin espacios para validar los flujos del Módulo de Publicidad (test_07)
 INSERT INTO publicidad.Espacio_publicitario (nombre, numero_slot, ID_Partido)
 SELECT s.nombre, s.slot, p.ID
 FROM partido.Partido p
@@ -310,7 +312,8 @@ CROSS JOIN (VALUES
     (2, 'Panel Perimetral Sur'),
     (3, 'Panel Perimetral Este'),
     (4, 'Panel Perimetral Oeste')
-) AS s(slot, nombre);
+) AS s(slot, nombre)
+WHERE p.ID = 1;
 GO
 
 -- =========================================================================================
