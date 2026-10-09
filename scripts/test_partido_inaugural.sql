@@ -13,7 +13,9 @@
      - Villa, Brenda
      
    Script: test_partido_inaugural.sql
-   Descripción: Simulación del Partido Inaugural oficial integrando los 3 Módulos del Sistema.
+   Descripción: Simulación del Partido Inaugural oficial integrando los 4 Módulos del Sistema.
+                Requisito previo: Haber ejecutado '00_datos_semilla.sql' previamente para contar
+                con los datos maestros (árbitros, anunciantes, campañas y piezas publicitarias).
                 No requiere vaciar la base previa; corre bajo ROLLBACK dejando la base intacta.
 
                 PARTIDO INAUGURAL OFICIAL - COPA MUNDIAL DE LA FIFA 2026
@@ -34,7 +36,7 @@
                      - sp_RegistrarConvocatoria (Dorsales correlativos 1 al 26 y camiseta 1 para Arquero)
                      - sp_ReemplazarConvocadoUltimoMomento (Baja médica real por lesión previa y herencia de camiseta)
                   2. MÓDULO 2 (Partidos y Cambios):
-                     - sp_CrearPartido (11 de junio de 2026 en Estadio Azteca con cálculo UTC)
+                     - sp_CrearPartido (11 de junio de 2026 en Estadio Azteca con cálculo UTC y generación de slots publicitarios)
                      - sp_RegistrarFormacion (México 4-3-3 y Sudáfrica 4-2-3-1)
                      - sp_RegistrarAlineacion (11 titulares reglamentarios y suplentes)
                      - sp_RegistrarSustitucion (Ventanas IFAB de cambios en el 2do tiempo)
@@ -42,6 +44,9 @@
                      - sp_DesignarArbitro (Wilton Sampaio de Brasil - Neutral FIFA Elite)
                      - sp_RegistrarTarjetaYSuspension (Amarillas oficiales a Mvala y Álvarez)
                      - sp_RegistrarGol (Goles oficiales con recálculo dinámico del marcador de partido)
+                  4. MÓDULO 4 (Publicidad y Exhibición Comercial):
+                     - sp_GenerarEspaciosPartido (Slots perimetrales 1 a 4 generados automáticamente por sp_CrearPartido)
+                     - sp_AsignarPublicidadPartido (Algoritmo de Prioridad Comercial: país participante México, PBI, Prime Time y costo)
 */
 
 USE Mundial2026;
@@ -486,6 +491,16 @@ BEGIN TRY
     PRINT '   + Goles oficiales asentados vía sp_RegistrarGol (México 2 - 0 Sudáfrica).';
 
     -- =========================================================================================
+    -- ETAPA 6.TER: ASIGNACIÓN DE PUBLICIDAD COMERCIAL (MÓDULO 4)
+    -- =========================================================================================
+    PRINT '>> [ETAPA 6.TER] Ejecutando algoritmo de asignación publicitaria vía publicidad.sp_AsignarPublicidadPartido...';
+    
+    -- Los 4 slots perimetrales ya fueron generados automáticamente en la Etapa 4 por sp_CrearPartido.
+    -- Asignamos las publicidades optimizadas según el país anfitrión (México), PBI, horario y costo:
+    EXEC publicidad.sp_AsignarPublicidadPartido @id_partido = @id_partido;
+    PRINT '   + Publicidad y exhibición en paneles perimetrales asignada exitosamente.';
+
+    -- =========================================================================================
     -- ETAPA 7: RESULTADO FINAL Y PLANILLAS OFICIALES DEL PARTIDO INAUGURAL 2026
     -- =========================================================================================
     PRINT '======================================================================';
@@ -547,6 +562,18 @@ BEGIN TRY
     JOIN administracion.Pais p_inf ON p_inf.ID = s_inf.ID_Pais
     WHERE t.ID_Partido = @id_partido
     ORDER BY t.minuto ASC;
+
+    -- 1.QUATER. Reporte de Árbitro Oficial del Partido
+    SELECT 
+        da.rol AS [Función Arbitral],
+        a.apellido + ', ' + a.nombre AS [Árbitro Oficial],
+        a.categoria AS [Categoría FIFA],
+        pa.nombre AS [Nacionalidad (Neutral)],
+        da.informe AS [Informe Técnico]
+    FROM arbitraje.Designacion_Arbitral da
+    JOIN arbitraje.Arbitro a ON a.ID = da.ID_Arbitro
+    JOIN administracion.Pais pa ON pa.ID = a.ID_Pais
+    WHERE da.ID_Partido = @id_partido;
 
     -- 2. Cuerpos Técnicos en el Banco
     SELECT 
@@ -636,6 +663,23 @@ BEGIN TRY
             AND t.minuto <= 70
       )
     ORDER BY p.nombre, c.dorsal ASC;
+
+    -- 6. Asignación Publicitaria Oficial (MÓDULO 4: Exhibición en Estadio Azteca)
+    SELECT 
+        ep.numero_slot AS [# Slot],
+        ep.nombre AS [Ubicación Panel],
+        pc.nombre AS [Pieza Publicitaria Exhibida],
+        c.nombre AS [Campaña Comercial],
+        an.nombre AS [Anunciante Oficial],
+        ex.orden_prioridad AS [Nivel de Prioridad],
+        '$' + CONVERT(VARCHAR, CAST(ex.monto_facturado AS MONEY), 1) AS [Monto Facturado]
+    FROM publicidad.Exhibicion ex
+    JOIN publicidad.Espacio_publicitario ep ON ep.ID = ex.ID_espacio
+    JOIN publicidad.Pieza_Contenido pc ON pc.ID = ex.ID_Pieza
+    JOIN publicidad.Campania c ON c.ID = pc.ID_Campania
+    JOIN publicidad.Anunciante an ON an.ID = c.ID_Anunciante
+    WHERE ep.ID_Partido = @id_partido
+    ORDER BY ep.numero_slot ASC;
 
 END TRY
 BEGIN CATCH
