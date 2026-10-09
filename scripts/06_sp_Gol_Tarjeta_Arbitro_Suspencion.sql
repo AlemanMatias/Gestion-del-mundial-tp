@@ -1,4 +1,25 @@
 
+/* 
+   UNIVERSIDAD NACIONAL DE LA MATANZA (UNLaM)
+   Departamento de Ingeniería e Investigaciones Tecnológicas
+   Asignatura: Bases de Datos Aplicada (3641)
+   Comisión: 02-5600 (Viernes Tarde)
+   
+   TRABAJO PRÁCTICO - SISTEMA DE REGISTRO Y GESTIÓN DEL MUNDIAL DE FÚTBOL 2026
+   
+   Integrantes del Grupo:
+     - Aleman Flores, Matias Osvaldo 
+     - Gamarra Bravo, Sidney Maribel
+     - Perreira, Carlos Manuel
+     - Villa, Brenda
+     
+   Script: 06_sp_Gol_Tarjeta_Arbitro_Suspencion.sql
+   Descripción: Módulo 3 - Goles, Tarjetas, Árbitros y Suspensiones.
+                Implementación de SPs para ABM de árbitros e idiomas, designación arbitral con validación
+                de nacionalidad neutral, registro de goles con actualización de marcador y registro de tarjetas
+                con cálculo automático de sanciones/suspensiones por acumulación o tarjeta roja directa.
+*/
+
 USE Mundial2026;
 GO
 
@@ -204,6 +225,76 @@ BEGIN
     END TRY
     BEGIN CATCH
         ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH;
+END;
+GO
+
+-- 4. REGISTRO DE GOL
+CREATE OR ALTER PROCEDURE partido.sp_RegistrarGol
+    @ID_Partido INT,
+    @ID_Jugador_autor INT,
+    @ID_Jugador_asistencia INT = NULL,
+    @ID_Seleccion INT,
+    @Minuto SMALLINT,
+    @Tipo VARCHAR(30), -- 'Jugada', 'Penal', 'Tiro Libre', 'En contra'
+    @Periodo VARCHAR(30) -- 'Primer Tiempo', 'Segundo Tiempo', 'Tiempo Extra'
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRANSACTION;
+
+    BEGIN TRY
+        -- Validar existencia de partido
+        IF NOT EXISTS (SELECT 1 FROM partido.Partido WHERE ID = @ID_Partido)
+            THROW 50020, 'El partido especificado no existe.', 1;
+
+        -- Validar existencia de autor
+        IF NOT EXISTS (SELECT 1 FROM administracion.Jugador WHERE ID = @ID_Jugador_autor)
+            THROW 50021, 'El jugador autor del gol no existe en el sistema.', 1;
+
+        -- Validar asistencia si fue enviada
+        IF @ID_Jugador_asistencia IS NOT NULL
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM administracion.Jugador WHERE ID = @ID_Jugador_asistencia)
+                THROW 50022, 'El jugador que asiste no existe en el sistema.', 1;
+
+            IF @ID_Jugador_asistencia = @ID_Jugador_autor
+                THROW 50023, 'El autor del gol y el asistente no pueden ser el mismo jugador.', 1;
+        END
+
+        -- Validar que la selección participe en el partido
+        IF NOT EXISTS (
+            SELECT 1 FROM partido.Partido 
+            WHERE ID = @ID_Partido AND (ID_Seleccion_Local = @ID_Seleccion OR ID_Seleccion_Visitante = @ID_Seleccion)
+        )
+            THROW 50024, 'La selección indicada no participa en este partido.', 1;
+
+        -- Validar minuto
+        IF @Minuto <= 0 OR @Minuto > 140
+            THROW 50025, 'El minuto del gol es inválido.', 1;
+
+        INSERT INTO partido.Gol (ID_Partido, ID_Jugador_autor, ID_Jugador_asistencia, ID_Seleccion, minuto, tipo, periodo)
+        VALUES (@ID_Partido, @ID_Jugador_autor, @ID_Jugador_asistencia, @ID_Seleccion, @Minuto, @Tipo, @Periodo);
+
+        -- Actualizar el marcador del partido (goles_local / goles_visitante)
+        UPDATE p
+        SET goles_local = ISNULL((
+                SELECT COUNT(*) FROM partido.Gol g
+                WHERE g.ID_Partido = p.ID AND g.ID_Seleccion = p.ID_Seleccion_Local
+            ), 0),
+            goles_visitante = ISNULL((
+                SELECT COUNT(*) FROM partido.Gol g
+                WHERE g.ID_Partido = p.ID AND g.ID_Seleccion = p.ID_Seleccion_Visitante
+            ), 0)
+        FROM partido.Partido p
+        WHERE p.ID = @ID_Partido;
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
         THROW;
     END CATCH;
 END;

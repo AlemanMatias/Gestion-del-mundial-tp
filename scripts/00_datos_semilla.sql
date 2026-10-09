@@ -40,7 +40,6 @@ DELETE FROM administracion.Fase_Torneo;
 DELETE FROM administracion.Pais;
 GO
 
-/*
 DBCC CHECKIDENT ('publicidad.Exhibicion', RESEED, 0) WITH NO_INFOMSGS;
 DBCC CHECKIDENT ('publicidad.Espacio_publicitario', RESEED, 0) WITH NO_INFOMSGS;
 DBCC CHECKIDENT ('publicidad.Pieza_Pais_Interes', RESEED, 0) WITH NO_INFOMSGS;
@@ -67,7 +66,6 @@ DBCC CHECKIDENT ('administracion.Club', RESEED, 0) WITH NO_INFOMSGS;
 DBCC CHECKIDENT ('administracion.Fase_Torneo', RESEED, 0) WITH NO_INFOMSGS;
 DBCC CHECKIDENT ('administracion.Pais', RESEED, 0) WITH NO_INFOMSGS;
 GO
-*/
 
 -- =========================================================================================
 -- 2. PAÍSES (huso_horario = offset de referencia del mercado, en verano boreal)
@@ -221,7 +219,7 @@ INSERT INTO partido.Partido
     (fecha_hora_local, fecha_hora_utc, ID_Fase, ID_Sede, ID_Seleccion_Local, ID_Seleccion_Visitante)
 SELECT v.local_dt, DATEADD(HOUR, v.horas_a_utc, v.local_dt), f.ID, sd.ID, sl.ID, sv.ID
 FROM (VALUES
-    -- ('2026-06-16 17:00', 5, 'Fase de Grupos', 'AT&T Stadium',    'Argentina', 'Argelia'), -- test_05 - Prueba 1
+    ('2026-06-16 17:00', 5, 'Fase de Grupos', 'AT&T Stadium',    'Argentina', 'Argelia'),
     ('2026-06-11 13:00', 6, 'Fase de Grupos', 'Estadio Azteca',  'México',    'Polonia'),
     ('2026-07-01 15:00', 4, 'Dieciseisavos',  'MetLife Stadium', 'Francia',   'Alemania')
 ) AS v(local_dt, horas_a_utc, fase, sede, local, visita)
