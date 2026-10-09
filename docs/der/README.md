@@ -16,7 +16,7 @@ Este directorio contiene el modelo conceptual y relacional del sistema.
   * Suspensiones y cumplimiento de sanciones.
   * Pauta, espacios publicitarios y exhibición de contenido.
 
-### Versión 1.0 - 07/10/2026
+### Versión 1.1 - 07/10/2026
   * Se reincorpora ID_Seleccion en Formacion_Partido para optimizar la trazabilidad del plantel y delegar la validación de localía/visita al Stored Procedure.
 
   * Se incorpora el atributo orden int en la tabla Fase_Torneo para establecer la jerarquía cronológica de las etapas y optimizar las validaciones de fases eliminatorias en los Stored Procedures.
