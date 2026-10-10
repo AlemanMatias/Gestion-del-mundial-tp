@@ -82,29 +82,12 @@ BEGIN TRY
 
 
     -- =========================================================================
-    -- PASO 4: REGISTRAR TARJETA ROJA Y SUSPENSIÓN A CRISTIAN ROMERO
+    -- PASO 4: ASEGURAR FORMACIÓN Y ALINEACIÓN DE ARGENTINA EN EL PARTIDO
     -- =========================================================================
-    DECLARE @ID_CristianRomero INT;
-    SELECT TOP 1 @ID_CristianRomero = ID FROM administracion.Jugador WHERE nombre = 'Cristian' AND apellido = 'Romero';
-
-    EXEC partido.sp_RegistrarTarjetaYSuspension
-        @ID_Partido = @ID_Partido_Test,
-        @ID_Jugador = @ID_CristianRomero,
-        @ID_Cuerpo_Tecnico = NULL,
-        @Minuto = 82,
-        @Motivo = 'Jugada brusca grave',
-        @Tipo = 'ROJA',                
-        @Es_Doble_Amarilla = 0,       
-        @Partidos_Suspension = 2;
-
-    PRINT 'Paso 4: Tarjeta roja y suspensión de 2 fechas registradas.';
-
-
-    -- =========================================================================
-    -- PASO 5: ASEGURAR FORMACIÓN Y ALINEACIÓN DE LIONEL MESSI
-    -- =========================================================================
-    DECLARE @ID_Messi INT;
+    DECLARE @ID_Messi INT, @ID_CristianRomero INT, @ID_DePaul INT;
     SELECT TOP 1 @ID_Messi = ID FROM administracion.Jugador WHERE nombre = 'Lionel' AND apellido = 'Messi';
+    SELECT TOP 1 @ID_CristianRomero = ID FROM administracion.Jugador WHERE nombre = 'Cristian' AND apellido = 'Romero';
+    SELECT TOP 1 @ID_DePaul = ID FROM administracion.Jugador WHERE nombre = 'Rodrigo' AND apellido = 'De Paul';
 
     IF NOT EXISTS (SELECT 1 FROM partido.Formacion_Partido WHERE ID_Partido = @ID_Partido_Test AND ID_Seleccion = @ID_Argentina)
     BEGIN
@@ -115,23 +98,44 @@ BEGIN TRY
     DECLARE @ID_Formacion INT;
     SELECT @ID_Formacion = ID FROM partido.Formacion_Partido WHERE ID_Partido = @ID_Partido_Test AND ID_Seleccion = @ID_Argentina;
 
-    IF NOT EXISTS (SELECT 1 FROM partido.Alineacion WHERE ID_Formacion = @ID_Formacion AND ID_Jugador = @ID_Messi)
+    -- Registrar a los jugadores en la alineación del partido
+    IF NOT EXISTS (SELECT 1 FROM partido.Alineacion WHERE ID_Formacion = @ID_Formacion AND ID_Jugador = @ID_CristianRomero)
     BEGIN
-        EXEC partido.sp_RegistrarAlineacion 
-            @id_formacion = @ID_Formacion, 
-            @id_jugador = @ID_Messi,          
-            @es_titular = 1;
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = @ID_Formacion, @id_jugador = @ID_CristianRomero, @es_titular = 1;
     END
 
-    PRINT 'Paso 5: Formación y alineación titular de Messi verificadas.';
+    IF NOT EXISTS (SELECT 1 FROM partido.Alineacion WHERE ID_Formacion = @ID_Formacion AND ID_Jugador = @ID_Messi)
+    BEGIN
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = @ID_Formacion, @id_jugador = @ID_Messi, @es_titular = 1;
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM partido.Alineacion WHERE ID_Formacion = @ID_Formacion AND ID_Jugador = @ID_DePaul)
+    BEGIN
+        EXEC partido.sp_RegistrarAlineacion @id_formacion = @ID_Formacion, @id_jugador = @ID_DePaul, @es_titular = 1;
+    END
+
+    PRINT 'Paso 4: Formación y alineaciones titulares verificadas.';
 
 
     -- =========================================================================
-    -- PASO 6: REGISTRAR GOL DE LIONEL MESSI
+    -- PASO 5: REGISTRAR TARJETA ROJA Y SUSPENSIÓN A CRISTIAN ROMERO
     -- =========================================================================
-    DECLARE @ID_DePaul INT;
-    SELECT TOP 1 @ID_DePaul = ID FROM administracion.Jugador WHERE nombre = 'Rodrigo' AND apellido = 'De Paul';
+    EXEC partido.sp_RegistrarTarjetaYSuspension
+        @ID_Partido = @ID_Partido_Test,
+        @ID_Jugador = @ID_CristianRomero,
+        @ID_Cuerpo_Tecnico = NULL,
+        @Minuto = 82,
+        @Motivo = 'Jugada brusca grave',
+        @Tipo = 'ROJA',                
+        @Es_Doble_Amarilla = 0,       
+        @Partidos_Suspension = 2;
 
+    PRINT 'Paso 5: Tarjeta roja y suspensión de 2 fechas registradas.';
+
+
+    -- =========================================================================
+    -- PASO 6: REGISTRAR GOL DE LIONEL MESSI (Asistencia de Rodrigo De Paul)
+    -- =========================================================================
     EXEC partido.sp_RegistrarGol
         @ID_Partido = @ID_Partido_Test,
         @ID_Jugador_autor = @ID_Messi,

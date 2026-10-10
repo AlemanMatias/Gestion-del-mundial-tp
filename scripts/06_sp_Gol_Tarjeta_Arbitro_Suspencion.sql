@@ -191,6 +191,20 @@ BEGIN
             THROW 50018, 'El minuto de la tarjeta es inválido.', 1;
         END
 
+        -- Validar que el destinatario pertenezca al partido antes de insertar
+        IF @ID_Jugador IS NOT NULL
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 
+                FROM partido.Alineacion al
+                JOIN partido.Formacion_Partido fp ON fp.ID = al.ID_Formacion
+                WHERE fp.ID_Partido = @ID_Partido AND al.ID_Jugador = @ID_Jugador
+            )
+            BEGIN
+                THROW 50019, 'El jugador sancionado no está inscripto en la alineación oficial de este partido.', 1;
+            END
+        END
+
         -- Insertar tarjeta
         INSERT INTO partido.Tarjeta (ID_Partido, ID_Jugador, ID_Miembro_Cuerpo_Tecnico, minuto, motivo, tipo, es_doble_amarilla)
         VALUES (@ID_Partido, @ID_Jugador, @ID_Cuerpo_Tecnico, @Minuto, @Motivo, @Tipo, @Es_Doble_Amarilla);
@@ -198,6 +212,7 @@ BEGIN
         -- Si es jugador, evaluar acumulación de amarillas o roja directa
         IF @ID_Jugador IS NOT NULL
         BEGIN
+
             DECLARE @TotalAmarillas INT;
             
             IF @Tipo = 'AMARILLA'
@@ -249,26 +264,36 @@ BEGIN
         IF NOT EXISTS (SELECT 1 FROM partido.Partido WHERE ID = @ID_Partido)
             THROW 50020, 'El partido especificado no existe.', 1;
 
-        -- Validar existencia de autor
-        IF NOT EXISTS (SELECT 1 FROM administracion.Jugador WHERE ID = @ID_Jugador_autor)
-            THROW 50021, 'El jugador autor del gol no existe en el sistema.', 1;
-
-        -- Validar asistencia si fue enviada
-        IF @ID_Jugador_asistencia IS NOT NULL
-        BEGIN
-            IF NOT EXISTS (SELECT 1 FROM administracion.Jugador WHERE ID = @ID_Jugador_asistencia)
-                THROW 50022, 'El jugador que asiste no existe en el sistema.', 1;
-
-            IF @ID_Jugador_asistencia = @ID_Jugador_autor
-                THROW 50023, 'El autor del gol y el asistente no pueden ser el mismo jugador.', 1;
-        END
-
-        -- Validar que la selección participe en el partido
+        -- Validar que la selección indicada participe en el partido
         IF NOT EXISTS (
             SELECT 1 FROM partido.Partido 
             WHERE ID = @ID_Partido AND (ID_Seleccion_Local = @ID_Seleccion OR ID_Seleccion_Visitante = @ID_Seleccion)
         )
             THROW 50024, 'La selección indicada no participa en este partido.', 1;
+
+        -- Validar que el autor del gol esté inscripto en la alineación del partido
+        IF NOT EXISTS (
+            SELECT 1 
+            FROM partido.Alineacion al
+            JOIN partido.Formacion_Partido fp ON fp.ID = al.ID_Formacion
+            WHERE fp.ID_Partido = @ID_Partido AND al.ID_Jugador = @ID_Jugador_autor
+        )
+            THROW 50021, 'El jugador autor del gol no está inscripto en la planilla/alineación de este partido.', 1;
+
+        -- Validar asistencia si fue enviada
+        IF @ID_Jugador_asistencia IS NOT NULL
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 
+                FROM partido.Alineacion al
+                JOIN partido.Formacion_Partido fp ON fp.ID = al.ID_Formacion
+                WHERE fp.ID_Partido = @ID_Partido AND al.ID_Jugador = @ID_Jugador_asistencia
+            )
+                THROW 50022, 'El jugador que asiste no está inscripto en la planilla/alineación de este partido.', 1;
+
+            IF @ID_Jugador_asistencia = @ID_Jugador_autor
+                THROW 50023, 'El autor del gol y el asistente no pueden ser el mismo jugador.', 1;
+        END
 
         -- Validar minuto
         IF @Minuto <= 0 OR @Minuto > 140
